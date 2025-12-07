@@ -8,12 +8,11 @@ const anecdoteSlice = createSlice({
     addAnecdote(state, action) {
       state.push(action.payload)
     },
-    addVote(state, action) {
-      const id = action.payload
-      const updatedVote = state.map(state => state.id === id 
-      ? { ...state, votes: state.votes +1 }: state)
-      const sortedAnecdotes = updatedVote.sort((a, b) => b.votes - a.votes)
-      return sortedAnecdotes  
+    updateAnecdote(state, action) {
+      const updated = action.payload
+      return state
+        .map(anecdote => anecdote.id === updated.id ? updated : anecdote)
+        .sort((a, b) => b.votes - a.votes)
     },
     setAnecdotes(state, action) {
       return action.payload
@@ -21,7 +20,7 @@ const anecdoteSlice = createSlice({
   },
 })
 
-const { addAnecdote, setAnecdotes } = anecdoteSlice.actions
+const { addAnecdote, updateAnecdote, setAnecdotes } = anecdoteSlice.actions
 
 export const initializeAnecdotes = () => {
   return async (dispatch) => {
@@ -37,5 +36,23 @@ export const appendAnecdote = (content) => {
   }
 }
 
-export const { addVote } = anecdoteSlice.actions
+export const appendAnecdoteVote = (id) => {
+  return async (dispatch, getState) => {
+    // Collect the used ID
+    const anecdote = getState().anecdotes.find(a => a.id === id)
+  
+    const updatedAnecdote = {
+      ...anecdote,
+      votes: anecdote.votes + 1
+    }
+    
+    // Send to backend and get the updated anecdote back
+    const savedAnecdote = await anecdoteService.updatedVote(id, updatedAnecdote)
+    
+    // Update just this one anecdote in Redux. Other option would have been to use
+    // getAll but this optimized the transfer since only updated is sent
+    dispatch(updateAnecdote(savedAnecdote))
+  }
+}
+
 export default anecdoteSlice.reducer
